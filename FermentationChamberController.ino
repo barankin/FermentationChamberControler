@@ -1,5 +1,5 @@
 
-/* Fermentation Chamber Controler: arduino based fermentation chamber temperature controller
+/* Fermentation Chamber Controller: arduino based fermentation chamber temperature controller
     stage one including:
     - Arduino Uno clone
     - lcd display
