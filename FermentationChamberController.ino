@@ -35,7 +35,7 @@
 
 /* function declaration */
 void setupDS18B20();
-void retriveLastSetTemperaure();
+void retrieveLastSetTemperaure();
 
 // #define constants
 //temperature sensor pins
@@ -64,12 +64,21 @@ void retriveLastSetTemperaure();
 //eeprom address
 #define SetTemperatureAddress 0
 
+const char firstLinePrefix[] = "Temp: ";
+const char secondLinePrefix[] = "Set Temp: ";
+
 const byte maximumSetTemp = 30;
 const byte minimumSetTemp = 2;
 const float defaultSetTemp = 20.0f;
 
+const long intervalTemperatureReading = 5000;
+
 // #define global variables
-float upperTempC = 20.0f, lowerTempC = 20.0f, setTempC = defaultSetTemp;
+//temperature variables
+float upperTempC = 20.0f, lowerTempC = 20.0f, setTempC = defaultSetTemp, averageTempC = 20.0f;
+
+//time variables for tracking time between activites
+unsigned long previousTemperatureReadingMillis = 0;
 
 //initializations
 LiquidCrystal lcd(LCD_RS, LCD_Enable, LCD_D4, LCD_D5, LCD_D6, LCD_D7); //set up the LCD as per the notes above regarding pins
@@ -83,18 +92,62 @@ DeviceAddress upperThermometer, lowerThermometer;
 
 void setup() {
   Serial.begin(9600); //init serial communication
+  
+  retrieveLastSetTemperaure(); //get last set temperature
+  
+  setupDS18B20(); //setup the ds18b20 temperature sensors
 
-  //get last set temperature
-  retriveLastSetTemperaure();
-
-  setupDS18B20();
-
+  // set up the LCD's number of columns and rows:
+  lcd.begin(16, 2);
+  
 }
 
 void loop() {
+  unsigned long currentMillis = millis(); //get current time, may need this for all kinds of things this loop
+
+/* -------------------------------------------*/
+// check the temperature every x milli seconds (defined by intervalTemperatureReading)
+
+  if (currentMillis - previousTemperatureReadingMillis >= intervalTemperatureReading) {
+    //get the upper and lower temps
+    upperTempC = sensors.getTempC(upperThermometer);
+    lowerTempC = sensors.getTempC(lowerThermometer);
+    averageTempC = (upperTempC + lowerTempC)
+    updateLCDDisplay();//not sure if this should happen everytime. probably need to only update if changed.
+  }
+/* -------------------------------------------*/
+
+
+/* -------------------------------------------*/
+// check to see if fan should be running (upperTempC is too far from lowerTempC)
+/* -------------------------------------------*/
+
+
+/* -------------------------------------------*/
+// check to see if compressor should be running (average is too warm)
+/* -------------------------------------------*/
+
+
+/* -------------------------------------------*/
+// check to see if heater should be running (average is too cold)
+/* -------------------------------------------*/
+
+
+/* -------------------------------------------*/
+// check to see if set temperature is changed
+/* -------------------------------------------*/
 
 }
 
+/* -------------------------------------------*/
+void updateLCDDisplay(){
+  lcd.print(firstLinePrefix + String(averageTempC,1) + "C"); //print the current averege fridge temp on the LCD
+  lcd.setCursor(0,1);
+  lcd.print(secondLinePrefix + String(setTempC,1) + "C"); //print the set temp on the LCD
+}
+/* -------------------------------------------*/
+
+/* -------------------------------------------*/
 void setupDS18B20() {
   sensors.begin();    //start the DallasTemp sensors
 
@@ -105,11 +158,14 @@ void setupDS18B20() {
   sensors.setResolution(upperThermometer, TEMPERATURE_PRECISION);
   sensors.setResolution(lowerThermometer, TEMPERATURE_PRECISION);
 }
+/* -------------------------------------------*/
 
-void retriveLastSetTemperaure() {
+/* -------------------------------------------*/
+void retrieveLastSetTemperaure() {
   //retreive the temperature stored in the eeprom
   EEPROM.get( SetTemperatureAddress, setTempC );
   
   //if the temperature is outside the defined allowable range, set it to the default temperature of 20 degrees C.
   if (((float)maximumSetTemp < setTempC) || ((float)minimumSetTemp > setTempC)) setTempC = defaultSetTemp;
 }
+/* -------------------------------------------*/
