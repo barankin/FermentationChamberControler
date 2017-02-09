@@ -36,6 +36,8 @@
 /* function declaration */
 void setupDS18B20();
 void retrieveLastSetTemperaure();
+void turnFanOn(int PWMValue);
+void turnFanOff();
 
 // #define constants
 //temperature sensor pins
@@ -64,21 +66,29 @@ void retrieveLastSetTemperaure();
 //eeprom address
 #define SetTemperatureAddress 0
 
+//LCD text prefix
 const char firstLinePrefix[] = "Temp: ";
 const char secondLinePrefix[] = "Set Temp: ";
 
+//temperature constants
 const byte maximumSetTemp = 30;
-const byte minimumSetTemp = 2;
-const float defaultSetTemp = 20.0f;
+const byte minimumSetTemp = 1;
+const float defaultSetTemp = 20.0f, allowableAverageTemperatureDelta = 1.0f, allowableElevationTemperatureDelta = 1.0f;
 
-const long intervalTemperatureReading = 5000;
+const unsigned long intervalTemperatureReading = 5000; //5 seconds, time between temperature readings, also between fan checks
+const unsigned long intervalCompressorOff = 900000; //900 seconds, 15 minutes. Minimum time elapsed before compressor can turn back on
 
 // #define global variables
 //temperature variables
 float upperTempC = 20.0f, lowerTempC = 20.0f, setTempC = defaultSetTemp, averageTempC = 20.0f;
 
 //time variables for tracking time between activites
-unsigned long previousTemperatureReadingMillis = 0;
+unsigned long previousTemperatureReadingMillis = 0; //last time temperature was read
+unsigned long previousFanReadingMillis = 0; //last time fan was checked
+unsigned long previousCompressorOffMillis = 0; //last time compressor turned off
+
+//states
+byte fanState = 0; //0 is off, 1 is on
 
 //initializations
 LiquidCrystal lcd(LCD_RS, LCD_Enable, LCD_D4, LCD_D5, LCD_D6, LCD_D7); //set up the LCD as per the notes above regarding pins
@@ -100,26 +110,50 @@ void setup() {
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 2);
   
+  //setup I/O pins
+  pinMode(Fan, OUTPUT);
+  
 }
 
 void loop() {
   unsigned long currentMillis = millis(); //get current time, may need this for all kinds of things this loop
 
-/* -------------------------------------------*/
-// check the temperature every x milli seconds (defined by intervalTemperatureReading)
-
+  /* -----------------------------------------*/
+  // check the temperature every x milli seconds (defined by intervalTemperatureReading)
   if (currentMillis - previousTemperatureReadingMillis >= intervalTemperatureReading) {
     //get the upper and lower temps
     upperTempC = sensors.getTempC(upperThermometer);
     lowerTempC = sensors.getTempC(lowerThermometer);
     averageTempC = (upperTempC + lowerTempC);
     updateLCDDisplay();//not sure if this should happen everytime. probably need to only update if changed.
+    previousTemperatureReadingMillis = currentMillis; //update this.
   }
-/* -------------------------------------------*/
+  /* -----------------------------------------*/
 
 
-/* -------------------------------------------*/
-// check to see if fan should be running (upperTempC is too far from lowerTempC)
+  /* -----------------------------------------*/
+  // check to see if fan should be running (upperTempC is too far from lowerTempC)
+  
+  if (currentMillis - previousFanReadingMillis >= intervalTemperatureReading) {
+    //turn fan on if we are at the Delta
+    //run at 100% until we are at 50% of delta
+    //run at 50% until we are at 20% of delta
+    //run at 25% until we are at 10% of delta
+    //once we are at 10% of delta, turn fan off and restart
+
+    float temperatureDelta = abs(upperTempC - lowerTempC);
+    if ((fanState == 0) && (temperatureDelta > allowableElevationTemperatureDelta))
+      turnFanOn(255);  //100% on using PWM
+    }else if((fanState == 1) && (allowableElevationTemperatureDelta >= temperatureDelta > (0.5 * allowableElevationTemperatureDelta))){
+      turnFanOn(127); //50% on using PWM
+    }else if((fanState == 1) && ((0.5*allowableElevationTemperatureDelta) >= temperatureDelta > (0.10 * allowableElevationTemperatureDelta))){
+      turnFanOn(56); //25% on using PWM
+    }else if((fanState == 1) && ((0.1*allowableElevationTemperatureDelta) >= temperatureDelta)){
+      turnFanOff();
+    }
+    previousFanReadingMillis = currentMillis; //update this.
+  }
+    
 /* -------------------------------------------*/
 
 
@@ -144,6 +178,19 @@ void updateLCDDisplay(){
   lcd.print(firstLinePrefix + String(averageTempC,1) + "C"); //print the current averege fridge temp on the LCD
   lcd.setCursor(0,1);
   lcd.print(secondLinePrefix + String(setTempC,1) + "C"); //print the set temp on the LCD
+}
+/* -------------------------------------------*/
+
+/* -------------------------------------------*/
+//fan functions
+void turnFanOn(int PWMValue){
+    analogWrite(Fan,PWMValue);
+    fanState = 1; //set fan to On
+}
+
+void turnFanOff(){
+    analogWrite(Fan,0);
+    fanState = 0; //set fan to On
 }
 /* -------------------------------------------*/
 
