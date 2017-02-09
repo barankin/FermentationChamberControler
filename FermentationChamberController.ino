@@ -75,7 +75,7 @@ const byte maximumSetTemp = 30;
 const byte minimumSetTemp = 1;
 const float defaultSetTemp = 20.0f, allowableAverageTemperatureDelta = 1.0f, allowableElevationTemperatureDelta = 1.0f;
 
-const unsigned long intervalTemperatureReading = 5000; //5 seconds, time between temperature readings, also between fan checks
+const unsigned long intervalTemperatureReading = 5000; //5 seconds, time between temperature readings, also between fan checks (but double the interval)
 const unsigned long intervalCompressorOff = 900000; //900 seconds, 15 minutes. Minimum time elapsed before compressor can turn back on
 
 // #define global variables
@@ -132,9 +132,8 @@ void loop() {
 
 
   /* -----------------------------------------*/
-  // check to see if fan should be running (upperTempC is too far from lowerTempC)
-  
-  if (currentMillis - previousFanReadingMillis >= intervalTemperatureReading) {
+  // check to see if fan should be running (upperTempC is too far from lowerTempC) every 2 x temperture check interval  
+  if (currentMillis - previousFanReadingMillis >= (2*intervalTemperatureReading)) {
     //turn fan on if we are at the Delta
     //run at 100% until we are at 50% of delta
     //run at 50% until we are at 20% of delta
