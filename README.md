@@ -1,6 +1,6 @@
-Fermentation Chamber Controller
+!Fermentation Chamber Controller
 arduino based fermentation chamber temperature controller
-    stage one including:
+!!stage one including:
     - Arduino Uno clone
     - lcd display
     - rotary encoder for changing temperature
@@ -8,10 +8,10 @@ arduino based fermentation chamber temperature controller
     - relay for turning compressor on and off
     - relay for turning heater on and off
     
-    stage two including:
+!!stage two including:
     - logging using ESP-01 and Ai Thinker commands over hardware serial
     
-    stage three including:
+!!stage three including:
     - full control and status via ESP-01
     
    The LCD circuit for the LCD HelloWorld. We will use the same pin configuration:
