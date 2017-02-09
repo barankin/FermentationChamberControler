@@ -112,7 +112,7 @@ void loop() {
     //get the upper and lower temps
     upperTempC = sensors.getTempC(upperThermometer);
     lowerTempC = sensors.getTempC(lowerThermometer);
-    averageTempC = (upperTempC + lowerTempC)
+    averageTempC = (upperTempC + lowerTempC);
     updateLCDDisplay();//not sure if this should happen everytime. probably need to only update if changed.
   }
 /* -------------------------------------------*/
