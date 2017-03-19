@@ -16,10 +16,10 @@
    The LCD circuit for the LCD HelloWorld. We will use the same pin configuration:
    LCD RS pin to digital pin 12
    LCD Enable pin to digital pin 11
-   LCD D4 pin to digital pin 5
-   LCD D5 pin to digital pin 4
-   LCD D6 pin to digital pin 3
-   LCD D7 pin to digital pin 2
+   LCD D4 pin to digital pin 7
+   LCD D5 pin to digital pin 6
+   LCD D6 pin to digital pin 5
+   LCD D7 pin to digital pin 4
    LCD R/W pin to ground
    LCD VSS pin to ground
    LCD VCC pin to 5V
@@ -27,44 +27,58 @@
    ends to +5V and ground
    wiper to LCD VO pin (pin 3)
 */
+//-------------------------------------------------------------------------------------------//
 #include <OneWire.h>            //to enable the DS18B20s
 #include <DallasTemperature.h>  //to manipulate the DS18B20s
 #include <LiquidCrystal.h>      //to set up the LCD
 #include <EEPROM.h>             //to retrieve/save last set temperature
+#include <Encoder.h>            //to facilitate the reading of the rotary encoder
 
+//-------------------------------------------------------------------------------------------//
 
 /* function declaration */
 void setupDS18B20();
+void setupFan();
+void calcFanRPM(unsigned long currentMillis);
+void rpm ();
 void retrieveLastSetTemperaure();
 void turnFanOn(int PWMValue);
 void turnFanOff();
+void updateLCDDisplay();
 
+//-------------------------------------------------------------------------------------------//
 // #define constants
 //temperature sensor pins
 #define ONE_WIRE_BUS 10
-#define TEMPERATURE_PRECISION 11
+#define fanOnPin A0
 
 //fan pin
-#define Fan 9 //pwm pin
+#define fanSpeedPin 9 //pwm pin
+#define fanSpeedSensor 3 //interupt pin for tracking fan RPM
 
 //relay pins
 #define Heater_Relay 7
 #define Compressor_Relay 6
 
 //rotary encoder pins
-#define Rotary_Pin_A A0
-#define Rotary_Pin_B A1
+#define Rotary_Encoder_Pin_A 2
+#define Rotary_Encoder_Pin_B 8
 
 //LCD pins
 #define LCD_RS 12
 #define LCD_Enable 11
-#define LCD_D4 5
-#define LCD_D5 4
-#define LCD_D6 3
-#define LCD_D7 2
+#define LCD_D4 7
+#define LCD_D5 6
+#define LCD_D6 5
+#define LCD_D7 4
 
 //eeprom address
 #define SetTemperatureAddress 0
+
+//other definitions
+#define TEMPERATURE_PRECISION 11    //11=.0125C, 375ms used to select less precise temperature
+
+//-------------------------------------------------------------------------------------------//
 
 //LCD text prefix
 const char firstLinePrefix[] = "Temp: ";
@@ -78,6 +92,7 @@ const float defaultSetTemp = 20.0f, allowableAverageTemperatureDelta = 1.0f, all
 const unsigned long intervalTemperatureReading = 5000; //5 seconds, time between temperature readings, also between fan checks (but double the interval)
 const unsigned long intervalCompressorOff = 900000; //900 seconds, 15 minutes. Minimum time elapsed before compressor can turn back on
 
+//-------------------------------------------------------------------------------------------//
 // #define global variables
 //temperature variables
 float upperTempC = 20.0f, lowerTempC = 20.0f, setTempC = defaultSetTemp, averageTempC = 20.0f;
@@ -90,8 +105,25 @@ unsigned long previousCompressorOffMillis = 0; //last time compressor turned off
 //states
 byte fanState = 0; //0 is off, 1 is on
 
+//rotary encoder variables
+int encoder0Pos = 0;
+
+//fan variables
+unsigned int previousFanReadMillis = 0;
+int fanReadInterval = 10000;
+int fanReadIntervalMultiplier = 6;
+int numberOfFanReadings = 0;
+int totalNumberOfFanReadingsInTheInterval = 0;
+const float fanSpeedLowerLimit = 50;  //about 490 rpm
+const float fanSpeedUpperLimit = 255; //about 1900 rpm
+float fanSpeed = fanSpeedLowerLimit;
+
+//-------------------------------------------------------------------------------------------//
+
 //initializations
 LiquidCrystal lcd(LCD_RS, LCD_Enable, LCD_D4, LCD_D5, LCD_D6, LCD_D7); //set up the LCD as per the notes above regarding pins
+
+Encoder knob(Rotary_Encoder_Pin_A, Rotary_Encoder_Pin_B);
 
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(ONE_WIRE_BUS);
@@ -99,20 +131,21 @@ OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 // arrays to hold device addresses
 DeviceAddress upperThermometer, lowerThermometer;
+//-------------------------------------------------------------------------------------------//
 
 void setup() {
   Serial.begin(9600); //init serial communication
-  
+
   retrieveLastSetTemperaure(); //get last set temperature
-  
+
   setupDS18B20(); //setup the ds18b20 temperature sensors
+
+  setupFan();
 
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 2);
-  
-  //setup I/O pins
-  pinMode(Fan, OUTPUT);
-  
+
+
 }
 
 void loop() {
@@ -124,16 +157,19 @@ void loop() {
     //get the upper and lower temps
     upperTempC = sensors.getTempC(upperThermometer);
     lowerTempC = sensors.getTempC(lowerThermometer);
+    Serial.print("Upper temperature: "); Serial.print(upperTempC); Serial.println(" C");
+    Serial.print("Lower temperature: "); Serial.print(lowerTempC); Serial.println(" C");
     averageTempC = (upperTempC + lowerTempC);
     updateLCDDisplay();//not sure if this should happen everytime. probably need to only update if changed.
     previousTemperatureReadingMillis = currentMillis; //update this.
   }
   /* -----------------------------------------*/
 
+  currentMillis = millis(); //that may have taken some time, so get this again
 
   /* -----------------------------------------*/
-  // check to see if fan should be running (upperTempC is too far from lowerTempC) every 2 x temperture check interval  
-  if (currentMillis - previousFanReadingMillis >= (2*intervalTemperatureReading)) {
+  // check to see if fan should be running (upperTempC is too far from lowerTempC) every 2 x temperture check interval
+  if (currentMillis - previousFanReadingMillis >= (2 * intervalTemperatureReading)) {
     //turn fan on if we are at the Delta
     //run at 100% until we are at 50% of delta
     //run at 50% until we are at 20% of delta
@@ -141,55 +177,90 @@ void loop() {
     //once we are at 10% of delta, turn fan off and restart
 
     float temperatureDelta = abs(upperTempC - lowerTempC);
-    if ((fanState == 0) && (temperatureDelta > allowableElevationTemperatureDelta))
-      turnFanOn(255);  //100% on using PWM
-    }else if((fanState == 1) && (allowableElevationTemperatureDelta >= temperatureDelta > (0.5 * allowableElevationTemperatureDelta))){
-      turnFanOn(127); //50% on using PWM
-    }else if((fanState == 1) && ((0.5*allowableElevationTemperatureDelta) >= temperatureDelta > (0.10 * allowableElevationTemperatureDelta))){
-      turnFanOn(56); //25% on using PWM
-    }else if((fanState == 1) && ((0.1*allowableElevationTemperatureDelta) >= temperatureDelta)){
+    if ((fanState == 0) && (temperatureDelta > allowableElevationTemperatureDelta)) {
+      turnFanOn(fanSpeedUpperLimit);  //100% on using PWM
+    } else if ((fanState == 1) && (allowableElevationTemperatureDelta >= temperatureDelta > (0.5 * allowableElevationTemperatureDelta))) {
+      turnFanOn((fanSpeedUpperLimit - fanSpeedLowerLimit) / 2 + fanSpeedLowerLimit); //50% on using PWM
+    } else if ((fanState == 1) && ((0.5 * allowableElevationTemperatureDelta) >= temperatureDelta > (0.10 * allowableElevationTemperatureDelta))) {
+      turnFanOn((fanSpeedUpperLimit - fanSpeedLowerLimit) / 4 + fanSpeedLowerLimit); //25% on using PWM
+    } else if ((fanState == 1) && ((0.1 * allowableElevationTemperatureDelta) >= temperatureDelta)) {
       turnFanOff();
     }
     previousFanReadingMillis = currentMillis; //update this.
   }
-    
-/* -------------------------------------------*/
+  /* -------------------------------------------*/
+
+  currentMillis = millis(); //that may have taken some time, so get this again
+  if (currentMillis - previousFanReadMillis >= fanReadInterval) {
+    calcFanRPM(currentMillis);
+  }
+
+  /* -------------------------------------------*/
+  // Rotary Encoder reading
+  long newPosition = knob.read();
+  if (newPosition != encoder0Pos) {
+    float positionDifference = newPosition - encoder0Pos;
+    encoder0Pos = newPosition;
+  }
+  /* -------------------------------------------*/
+
+  /* -------------------------------------------*/
+  // check to see if compressor should be running (average is too warm)
+  /* -------------------------------------------*/
 
 
-/* -------------------------------------------*/
-// check to see if compressor should be running (average is too warm)
-/* -------------------------------------------*/
+  /* -------------------------------------------*/
+  // check to see if heater should be running (average is too cold)
+  /* -------------------------------------------*/
 
 
-/* -------------------------------------------*/
-// check to see if heater should be running (average is too cold)
-/* -------------------------------------------*/
-
-
-/* -------------------------------------------*/
-// check to see if set temperature is changed
-/* -------------------------------------------*/
+  /* -------------------------------------------*/
+  // check to see if set temperature is changed
+  /* -------------------------------------------*/
 
 }
 
 /* -------------------------------------------*/
-void updateLCDDisplay(){
-  lcd.print(firstLinePrefix + String(averageTempC,1) + "C"); //print the current averege fridge temp on the LCD
-  lcd.setCursor(0,1);
-  lcd.print(secondLinePrefix + String(setTempC,1) + "C"); //print the set temp on the LCD
+void updateLCDDisplay() {
+  lcd.print(firstLinePrefix + String(averageTempC, 1) + "C"); //print the current averege fridge temp on the LCD
+  lcd.setCursor(0, 1);
+  lcd.print(secondLinePrefix + String(setTempC, 1) + "C"); //print the set temp on the LCD
 }
 /* -------------------------------------------*/
 
 /* -------------------------------------------*/
 //fan functions
-void turnFanOn(int PWMValue){
-    analogWrite(Fan,PWMValue);
-    fanState = 1; //set fan to On
+void setupFan() {
+  pinMode(fanOnPin, OUTPUT);
+  digitalWrite(fanOnPin, LOW);
+  fanState = 0; //set fan to OFF
+  pinMode(fanSpeedPin, OUTPUT);
+  analogWrite(fanSpeedPin, fanSpeed);
+  pinMode(fanSpeedSensor, INPUT);
+  attachInterrupt(digitalPinToInterrupt(fanSpeedSensor), rpm, RISING);
 }
 
-void turnFanOff(){
-    analogWrite(Fan,0);
-    fanState = 0; //set fan to On
+void calcFanRPM(unsigned long currentMillis) {
+  previousFanReadMillis = currentMillis;
+  totalNumberOfFanReadingsInTheInterval = numberOfFanReadings;
+  numberOfFanReadings = 0;
+  int value = totalNumberOfFanReadingsInTheInterval * fanReadIntervalMultiplier;
+  Serial.print("Fan RPM: ");
+  Serial.println(value);
+}
+
+void rpm () {
+  numberOfFanReadings++;
+}
+
+void turnFanOn(int PWMValue) {
+  analogWrite(numberOfFanReadings, PWMValue);
+  fanState = 1; //set fan to On
+}
+
+void turnFanOff() {
+  analogWrite(numberOfFanReadings, fanSpeedLowerLimit);
+  fanState = 0; //set fan to OFF
 }
 /* -------------------------------------------*/
 
@@ -210,7 +281,7 @@ void setupDS18B20() {
 void retrieveLastSetTemperaure() {
   //retreive the temperature stored in the eeprom
   EEPROM.get( SetTemperatureAddress, setTempC );
-  
+
   //if the temperature is outside the defined allowable range, set it to the default temperature of 20 degrees C.
   if (((float)maximumSetTemp < setTempC) || ((float)minimumSetTemp > setTempC)) setTempC = defaultSetTemp;
 }
