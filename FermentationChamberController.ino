@@ -57,8 +57,8 @@ void updateLCDDisplay();
 #define fanSpeedSensor 3 //interupt pin for tracking fan RPM
 
 //relay pins
-#define Heater_Relay 7
-#define Compressor_Relay 6
+#define Heater_Relay A2
+#define Compressor_Relay A1
 
 //rotary encoder pins
 #define Rotary_Encoder_Pin_A 2
