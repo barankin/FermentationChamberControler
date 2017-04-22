@@ -27,6 +27,11 @@
    ends to +5V and ground
    wiper to LCD VO pin (pin 3)
 */
+
+/*
+ * ToDo:
+ * 1. modify set temperature with rotary encoder
+ */
 //-------------------------------------------------------------------------------------------//
 #include <OneWire.h>            //to enable the DS18B20s
 #include <DallasTemperature.h>  //to manipulate the DS18B20s
@@ -63,6 +68,7 @@ void updateLCDDisplay();
 //rotary encoder pins
 #define Rotary_Encoder_Pin_A 2
 #define Rotary_Encoder_Pin_B 8
+#define encoderButtonPin A3    // the number of the pushbutton pin
 
 //LCD pins
 #define LCD_RS 12
@@ -105,8 +111,19 @@ unsigned long previousCompressorOffMillis = 0; //last time compressor turned off
 //states
 byte fanState = 0; //0 is off, 1 is on
 
+//user interface state
+unsigned int userInterfaceState = 0; //0 off, 1 LCD on (30 seconds timeout), 2 LCD on and temperature set (30 seconds timeout)
+unsigned long currentUserInterfacemillis = 0;
+unsigned long userInterfaceTimeoutInterval = 30000;
+
 //rotary encoder variables
 int encoder0Pos = 0;
+int encoderButtonState; // the current reading from the input pin
+int lastEncoderButtonState = LOW;   // the previous reading from the input pin
+// the following variables are unsigned long's because the time, measured in miliseconds,
+// will quickly become a bigger number than can be stored in an int.
+unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
+unsigned long debounceDelay = 50;    // the debounce time; increase if the output flickers
 
 //fan variables
 unsigned int previousFanReadMillis = 0;
@@ -145,7 +162,7 @@ void setup() {
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 2);
 
-
+  pinMode(encoderButtonPin, INPUT); //Rotaty encode push button pin;
 }
 
 void loop() {
@@ -196,13 +213,76 @@ void loop() {
   }
 
   /* -------------------------------------------*/
-  // Rotary Encoder reading
-  long newPosition = knob.read();
-  if (newPosition != encoder0Pos) {
-    float positionDifference = newPosition - encoder0Pos;
-    encoder0Pos = newPosition;
+  //Get Rotary Encode Button Press
+  //Local display and temperature set work via button press
+  //plan is
+  //1 press = LCD display on //30 second timeout from press or rotary encoder movements
+  //2 press = temperature adjust
+  currentMillis = millis(); //that may have taken some time, so get this again
+  int reading = digitalRead(encoderButtonPin);
+
+  // check to see if you just pressed the button
+  // (i.e. the input went from LOW to HIGH),  and you've waited
+  // long enough since the last press to ignore any noise:
+
+  // If the switch changed, due to noise or pressing:
+  if (reading != lastEncoderButtonState) {
+    // reset the debouncing timer
+    lastDebounceTime = currentMillis;
+  }
+
+  if ((currentMillis - lastDebounceTime) > debounceDelay) {
+    // whatever the reading is at, it's been there for longer
+    // than the debounce delay, so take it as the actual current state:
+
+    // if the button state has changed:
+    if (reading != encoderButtonState) {
+      encoderButtonState = reading;
+
+      // act on button press, change state 0, 1 or 2
+      if (encoderButtonState == HIGH) {
+        //if button presed in state 2, return to state 1
+        if (userInterfaceState == 2) userInterfaceState = 1;
+        else userInterfaceState++;      
+        currentUserInterfacemillis = currentMillis;
+      }
+    }
+    lastEncoderButtonState = reading;
   }
   /* -------------------------------------------*/
+
+  /* -------------------------------------------*/
+  //Handle UI state
+  //0 = off
+  //1 = LCD on (30 second timeout from last activity, return to state 0)
+  //2 = LCD on, rotary encoder reading active for temperature set (30 second timeout).
+  //    if timeout, no temperature change, lcd off -> return to state 0
+  //    if button press, temp change confirmed, return to state 1
+
+  if (userInterfaceState == 0) {    
+      lcd.noDisplay();
+      break;
+  }else if (userInterfaceState == 1 || userInterfaceState ==2){
+      lcd.display();
+      if (currentMillis - currentUserInterfacemillis >= userInterfaceTimeoutInterval) {
+        //timeout has occurred, no changes to be made;
+        userInterfaceState = 0;
+      }
+  }
+
+  /* -------------------------------------------*/
+  /* -------------------------------------------*/
+  // Rotary Encoder reading if we are in "userInterfaceState state 2"
+  if (userInterfaceState==2) {
+    long newPosition = knob.read();
+    if (newPosition != encoder0Pos) {
+      float positionDifference = newPosition - encoder0Pos;
+      encoder0Pos = newPosition;
+      currentUserInterfacemillis = currentMillis;
+    }
+  }
+  /* -------------------------------------------*/
+
 
   /* -------------------------------------------*/
   // check to see if compressor should be running (average is too warm)
