@@ -22,6 +22,7 @@
    10K resistor:
    ends to +5V and ground
    wiper to LCD VO pin (pin 3)
+   Ground to 13
 
   Library originally added 18 Apr 2008
   by David A. Mellis
@@ -37,6 +38,8 @@
   http://www.arduino.cc/en/Tutorial/LiquidCrystal
 */
 
+#define LCDOnPin 13
+
 // include the library code:
 #include <LiquidCrystal.h>
 
@@ -44,10 +47,14 @@
 LiquidCrystal lcd(12, 11, 7, 6, 5, 4);
 
 void setup() {
-  // set up the LCD's number of columns and rows:
+  pinMode(LCDOnPin, OUTPUT);
+  digitalWrite(LCDOnPin, LOW);
   lcd.begin(16, 2);
   // Print a message to the LCD.
   lcd.print("hello, world!");
+  // set up the LCD's number of columns and rows:
+  delay(5000);
+  digitalWrite(LCDOnPin, HIGH);
 }
 
 void loop() {
