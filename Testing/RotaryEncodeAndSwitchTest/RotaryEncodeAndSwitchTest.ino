@@ -16,7 +16,7 @@
 */
 
 // include the library code:
-#include <LiquidCrystal.h>
+//#include <LiquidCrystal.h>
 #include <Encoder.h>
 
 //rotary encoder pins
@@ -36,24 +36,24 @@ long encoder0Pos = 0;
 
 
 // initialize the library with the numbers of the interface pins
-LiquidCrystal lcd(12, 11, 7, 6, 5, 4);
-Encoder knob(Rotary_Encoder_Pin_A, Rotary_Encoder_Pin_B);
+//LiquidCrystal lcd(12, 11, 7, 6, 5, 4);
+Encoder knob(Rotary_Encoder_Pin_B, Rotary_Encoder_Pin_A);
 
 void setup() {
   pinMode(encoderButtonPin, INPUT);
-
+  Serial.begin(9600);
+  Serial.println("Serial is working");
   // set up the LCD's number of columns and rows:
-  lcd.begin(16, 2);
-  lcd.noDisplay();
+  //lcd.begin(16, 2);
+  //lcd.noDisplay();
   // Print a message to the LCD.
-  lcd.print("hello, world!");
-      lcd.setCursor(0,1);
-    lcd.print(encoder0Pos);
+  //lcd.print("hello, world!");
+  //   lcd.setCursor(0,1);
+  // lcd.print(encoder0Pos);
+    Serial.println(encoder0Pos);
 }
 
 void loop() {
-    Serial.begin(9600);
-    Serial.println("Serial is working");
   reading = digitalRead(encoderButtonPin);
   if (reading == HIGH && previous == LOW && millis() - time > debounce) {
     if (state == HIGH)
@@ -67,13 +67,15 @@ void loop() {
 
   // set the cursor to column 0, line 1
   // (note: line 1 is the second row, since counting begins with 0):
-  lcd.setCursor(0, 1);
+  //lcd.setCursor(0, 1);
   // print the number of seconds since reset:
-  if (state == HIGH) {
-    lcd.display();
-  } else {
-    lcd.noDisplay();
-  }
+  //if (state == HIGH) {
+    //lcd.display();
+    //Serial.println("on");
+  //} else {
+    //lcd.noDisplay();
+    //Serial.println("off");
+  //}
 
   long newPosition;
   newPosition = knob.read();
@@ -81,9 +83,9 @@ void loop() {
     float positionDifference = newPosition - encoder0Pos;
     Serial.println(positionDifference);
     encoder0Pos = newPosition;
-    
-    lcd.setCursor(0,1);
-    lcd.print(encoder0Pos);
+
+    // lcd.setCursor(0,1);
+    // lcd.print(encoder0Pos);
   }
 }
 
