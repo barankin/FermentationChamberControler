@@ -692,7 +692,6 @@ Wire Wire Line
 	5700 5350 5700 5600
 Wire Wire Line
 	5700 4900 5700 5050
-Connection ~ 5450 5900
 Wire Wire Line
 	5700 4900 5250 4900
 Wire Wire Line
@@ -762,13 +761,7 @@ Wire Notes Line
 Wire Notes Line
 	7400 3900 7400 4800
 Wire Notes Line
-	7150 6350 6400 6350
-Wire Notes Line
-	6400 6350 6400 6650
-Wire Notes Line
-	6400 6650 5200 6650
-Wire Notes Line
-	5200 6650 5200 4850
+	5200 6350 7150 6350
 Wire Notes Line
 	5200 4850 7150 4850
 Wire Notes Line
@@ -800,17 +793,14 @@ Wire Wire Line
 	6250 5800 6700 5800
 Connection ~ 6400 5800
 Wire Wire Line
-	5450 5900 5450 6400
-Wire Wire Line
-	5450 6400 6300 6400
-Wire Wire Line
-	6300 6400 6300 6100
-Wire Wire Line
-	6300 6100 6400 6100
-Wire Wire Line
 	6700 5900 6700 6150
 Wire Wire Line
 	6700 6150 6000 6150
 Wire Wire Line
 	6000 6150 6000 5900
+Wire Wire Line
+	6400 6100 6400 6150
+Connection ~ 6400 6150
+Wire Notes Line
+	5200 6350 5200 4850
 $EndSCHEMATC
