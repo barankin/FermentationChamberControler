@@ -176,7 +176,7 @@ void loop() {
     lowerTempC = sensors.getTempC(lowerThermometer);
     Serial.print("Upper temperature: "); Serial.print(upperTempC); Serial.println(" C");
     Serial.print("Lower temperature: "); Serial.print(lowerTempC); Serial.println(" C");
-    averageTempC = (upperTempC + lowerTempC);
+    averageTempC = (upperTempC + lowerTempC)/2;
     updateLCDDisplay();//not sure if this should happen everytime. probably need to only update if changed.
     previousTemperatureReadingMillis = currentMillis; //update this.
   }
