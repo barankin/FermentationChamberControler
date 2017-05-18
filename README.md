@@ -2,8 +2,8 @@
 arduino based fermentation chamber temperature controller
 
 * Stage one including:
- * Arduino Uno clone
- * LCD display
+ * Arduino ~~Uno clone~~ Nano clone
+ * 1602 LCD display
  * Rotary encoder for changing temperature
  * Two temperature probes DS18B20 using one wire bus
  * Relay for turning compressor on and off
