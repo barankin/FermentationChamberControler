@@ -490,8 +490,8 @@ L Screw_Terminal_1x02 J1
 U 1 1 591BAA85
 P 1000 6500
 F 0 "J1" H 1000 6750 50  0000 C TNN
-F 1 "Screw_Terminal_1x02" V 850 6500 50  0000 C TNN
-F 2 "Connectors_Terminal_Blocks:TerminalBlock_WAGO-804_RM5mm_2pol" H 1000 6275 50  0001 C CNN
+F 1 "G   Vcc" V 850 6500 50  0000 C TNN
+F 2 "Connectors:bornier2" H 1000 6275 50  0001 C CNN
 F 3 "" H 975 6500 50  0001 C CNN
 	1    1000 6500
 	0    -1   -1   0   
@@ -501,8 +501,8 @@ L Screw_Terminal_1x02 J2
 U 1 1 591BADC2
 P 1850 6500
 F 0 "J2" H 1850 6750 50  0000 C TNN
-F 1 "Screw_Terminal_1x02" V 1700 6500 50  0000 C TNN
-F 2 "Connectors_Terminal_Blocks:TerminalBlock_WAGO-804_RM5mm_2pol" H 1850 6275 50  0001 C CNN
+F 1 "1Wire 1Wire" V 1700 6500 50  0000 C TNN
+F 2 "Connectors:bornier2" H 1850 6275 50  0001 C CNN
 F 3 "" H 1825 6500 50  0001 C CNN
 	1    1850 6500
 	0    -1   -1   0   
@@ -512,8 +512,8 @@ L Screw_Terminal_1x02 J3
 U 1 1 591BAE99
 P 2700 6500
 F 0 "J3" H 2700 6750 50  0000 C TNN
-F 1 "Screw_Terminal_1x02" V 2550 6500 50  0000 C TNN
-F 2 "Connectors_Terminal_Blocks:TerminalBlock_WAGO-804_RM5mm_2pol" H 2700 6275 50  0001 C CNN
+F 1 "Vcc  G" V 2550 6500 50  0000 C TNN
+F 2 "Connectors:bornier2" H 2700 6275 50  0001 C CNN
 F 3 "" H 2675 6500 50  0001 C CNN
 	1    2700 6500
 	0    -1   -1   0   
