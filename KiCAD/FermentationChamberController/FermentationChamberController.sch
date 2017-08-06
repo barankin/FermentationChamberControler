@@ -995,4 +995,5 @@ Wire Notes Line
 	6300 3050 7900 3050
 Wire Notes Line
 	7900 3050 7900 700 
+NoConn ~ 7000 2700
 $EndSCHEMATC
