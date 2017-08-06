@@ -336,11 +336,13 @@ void rpm () {
 void turnFanOn(int PWMValue) {
   analogWrite(numberOfFanReadings, PWMValue);
   fanState = 1; //set fan to On
+  digitalWrite(fanOnPin, HIGH);
 }
 
 void turnFanOff() {
   analogWrite(numberOfFanReadings, fanSpeedLowerLimit);
   fanState = 0; //set fan to OFF
+  digitalWrite(fanOnPin, LOW);
 }
 /* -------------------------------------------*/
 
