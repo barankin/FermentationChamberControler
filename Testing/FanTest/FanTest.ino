@@ -30,11 +30,10 @@ int totalNumberOfFanReadingsInTheInterval = 0;
 const float fanSpeedLowerLimit = 50;  //about 490 rpm
 const float fanSpeedUpperLimit = 255; //about 1900 rpm
 float fanSpeed = fanSpeedLowerLimit;
-
 unsigned int fanSpeedState = 1; //0 is off, 1 is full, 2 is half, 3 is low
-
-
 unsigned long previousFanActionMillis = 0;
+
+String serialInput;
 
 void setup() {
   // put your setup code here, to run once:
@@ -52,27 +51,46 @@ void loop() {
     calcFanRPM(currentMillis);
   }
 
-
-  if (currentMillis - previousFanActionMillis >= (fanReadInterval * 2)) {
-    if (fanSpeedState == 0) {
-      turnFanOff();
-      Serial.println("Fan is off");
-      fanSpeedState++;
-    } else if (fanSpeedState == 1) {
-      turnFanOn(255);
-      Serial.println("Fan is on full");
-      fanSpeedState++;
-    } else if (fanSpeedState == 2) {
-      Serial.println("Fan is on half");
-      turnFanOn(255 / 2);
-      fanSpeedState++;
-    } else if (fanSpeedState == 3) {
-      Serial.println("Fan is on low");
-      turnFanOn(0);
-      fanSpeedState++;
+  while (Serial.available()) {
+    serialInput = Serial.readString(); // read the incoming data as string
+    Serial.println(serialInput);
+    if(serialInput.toLowerCase().equals("off")){
+        turnFanOff();
+        Serial.println("Fan is off");
+    }else if(serialInput.toLowerCase().equals("full")){
+        turnFanOn(255);
+        Serial.println("Fan is on full");
+    }else if(serialInput.toLowerCase().equals("half")){
+        turnFanOn(255/2);
+        Serial.println("Fan is on half");
+    }else if(serialInput.toLowerCase().equals("low")){
+        turnFanOn(0);
+        Serial.println("Fan is on low");
     }
-    previousFanActionMillis = currentMillis;
   }
+
+  /**
+    if (currentMillis - previousFanActionMillis >= (fanReadInterval * 2)) {
+      if (fanSpeedState == 0) {
+        turnFanOff();
+        Serial.println("Fan is off");
+        fanSpeedState++;
+      } else if (fanSpeedState == 1) {
+        turnFanOn(255);
+        Serial.println("Fan is on full");
+        fanSpeedState++;
+      } else if (fanSpeedState == 2) {
+        Serial.println("Fan is on half");
+        turnFanOn(255 / 2);
+        fanSpeedState++;
+      } else if (fanSpeedState == 3) {
+        Serial.println("Fan is on low");
+        turnFanOn(0);
+        fanSpeedState++;
+      }
+      previousFanActionMillis = currentMillis;
+    }
+    **/
 
 }
 
@@ -96,7 +114,7 @@ void calcFanRPM(unsigned long currentMillis) {
   Serial.println(previousFanReadMillis);
   previousFanReadMillis = currentMillis;
   totalNumberOfFanReadingsInTheInterval = numberOfFanReadings;
-  
+
   Serial.print("No of Fan Reading: ");
   Serial.println(totalNumberOfFanReadingsInTheInterval);
   numberOfFanReadings = 0;
