@@ -1,4 +1,5 @@
-
+//PWM, on, off all working
+//RPM sense not correct yet!
 
 /* function declaration */
 void setupFan();
@@ -14,7 +15,7 @@ void rpm ();
 
 //fan pin
 #define fanSpeedPin 9 //pwm pin
-#define fanSpeedSensor 3 //interupt pin for tracking fan RPM
+#define fanSpeedSensor 2 //interupt pin for tracking fan RPM
 
 //-------------------------------------------------------------------------------------------//
 // #define global variables
@@ -23,8 +24,8 @@ byte fanState = 0; //0 is off, 1 is on
 
 //fan variables
 unsigned long previousFanReadMillis = 0;
-int fanReadInterval = 10000;
-int fanReadIntervalMultiplier = 6;
+unsigned long fanReadInterval = 5000;
+int fanReadIntervalMultiplier = 3;
 int numberOfFanReadings = 0;
 int totalNumberOfFanReadingsInTheInterval = 0;
 const float fanSpeedLowerLimit = 50;  //about 490 rpm
@@ -53,20 +54,26 @@ void loop() {
 
   while (Serial.available()) {
     serialInput = Serial.readString(); // read the incoming data as string
-    Serial.println(serialInput);
-    if(serialInput.toLowerCase().equals("off")){
+    Serial.println("");
+    serialInput.toLowerCase();
+    serialInput.trim();
+    if(serialInput.equals("off")){
         turnFanOff();
         Serial.println("Fan is off");
-    }else if(serialInput.toLowerCase().equals("full")){
-        turnFanOn(255);
+    }else if(serialInput.equals("full")){
+        turnFanOn(fanSpeedUpperLimit);
         Serial.println("Fan is on full");
-    }else if(serialInput.toLowerCase().equals("half")){
-        turnFanOn(255/2);
+    }else if(serialInput.equals("half")){
+        turnFanOn((fanSpeedUpperLimit-fanSpeedLowerLimit)/2);
         Serial.println("Fan is on half");
-    }else if(serialInput.toLowerCase().equals("low")){
-        turnFanOn(0);
+    }else if(serialInput.equals("low")){
+        turnFanOn(fanSpeedLowerLimit);
         Serial.println("Fan is on low");
+    }else{
+      Serial.println("Not a recognized command");
     }
+    Serial.println(serialInput);
+    Serial.println("");
   }
 
   /**
@@ -108,33 +115,40 @@ void setupFan() {
 }
 
 void calcFanRPM(unsigned long currentMillis) {
-  Serial.print("currentMillis: ");
-  Serial.println(currentMillis);
-  Serial.print("previousFanReadMillis: ");
-  Serial.println(previousFanReadMillis);
+  //Serial.print("currentMillis: ");
+  //Serial.println(currentMillis);
+  //Serial.print("previousFanReadMillis: ");
+  //Serial.println(previousFanReadMillis);
   previousFanReadMillis = currentMillis;
+  
+  Serial.println(numberOfFanReadings);
   totalNumberOfFanReadingsInTheInterval = numberOfFanReadings;
 
   Serial.print("No of Fan Reading: ");
   Serial.println(totalNumberOfFanReadingsInTheInterval);
-  numberOfFanReadings = 0;
+  
   int value = totalNumberOfFanReadingsInTheInterval * fanReadIntervalMultiplier;
+  
   Serial.print("Fan RPM: ");
   Serial.println(value);
+  numberOfFanReadings = 0;
 }
 
 void rpm () {
+  //Serial.println(numberOfFanReadings);
   numberOfFanReadings++;
 }
 
 void turnFanOn(int PWMValue) {
-  analogWrite(numberOfFanReadings, PWMValue);
+  Serial.print("Fan running at PWM of: ");
+  Serial.println(PWMValue);
+  analogWrite(fanSpeedPin, PWMValue);
   fanState = 1; //set fan to On
   digitalWrite(fanOnPin, HIGH);
 }
 
 void turnFanOff() {
-  analogWrite(numberOfFanReadings, fanSpeedLowerLimit);
+  analogWrite(fanSpeedPin, 0);
   fanState = 0; //set fan to OFF
   digitalWrite(fanOnPin, LOW);
 }
