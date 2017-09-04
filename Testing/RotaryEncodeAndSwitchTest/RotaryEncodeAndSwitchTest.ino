@@ -50,7 +50,6 @@ void setup() {
   pinMode(LCDBacklightOnPin, OUTPUT);
   digitalWrite(LCDBacklightOnPin, LOW);
   pinMode(encoderButtonPin, INPUT);
-  digitalWrite(LCDBacklightOnPin, LOW);
   Serial.begin(9600);
   Serial.println("Serial is working");
   // set up the LCD's number of columns and rows:
