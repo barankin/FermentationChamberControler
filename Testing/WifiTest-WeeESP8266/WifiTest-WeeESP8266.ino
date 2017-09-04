@@ -1,5 +1,14 @@
+/**
+ * Codes
+ * 0: OK
+ * 1: Join AP Failure
+ * 2: create tcp err
+ */
+
 #include "ESP8266.h"
 #include <SoftwareSerial.h>
+
+#define OK 0
 
 #define SSID        "ford_prefect_2.4"
 #define PASSWORD    "annabanana"
@@ -7,7 +16,7 @@
 #define KEY "WTYK34F502K75NFE"
 #define HOST_PORT (80)
 
-SoftwareSerial mySerial(A5, A4); /* RX:D3, TX:D2 */
+SoftwareSerial mySerial(A5, A4); /* RX:A5, TX:A4 */
 ESP8266 wifi(mySerial);
 
 void setupWIFI(void);
@@ -16,7 +25,7 @@ void postSensorData(String temp1, String temp2, String tempAvg,
 
 void setup() {
   Serial.begin(9600);
-  Serial.println("Start!");
+  //Serial.println("Start!");
 
   setupWIFI();
 
@@ -24,14 +33,14 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  Serial.println("Loop start");
+  //Serial.println("Loop start");
   delay(3000);
-  postSensorData("20", "22", "21",  "0", "0", "0");
+  postSensorData("22", "20", "21",  "0", "0", "0");
 }
 
 void setupWIFI() {
 
-  Serial.print("WIFI setup begin\r\n");
+  //Serial.print("WIFI setup begin\r\n");
   wifi.restart();
   delay(2000);
 
@@ -49,34 +58,38 @@ void setupWIFI() {
   */
 
   if (wifi.setOprToStation()) {
-    Serial.print("to station ok\r\n");
+    //Serial.print("to station ok\r\n");
+    Serial.println(OK);
   } else {
-    Serial.print("to station err\r\n");
+    //Serial.print("to station err\r\n");
   }
 
   if (wifi.joinAP(SSID, PASSWORD)) {
-    Serial.print("Join AP success\r\n");
-    Serial.print("IP: ");
-    Serial.println(wifi.getLocalIP().c_str());
+    //Serial.print("Join AP success\r\n");
+    //Serial.print("IP: ");
+    //Serial.println(wifi.getLocalIP().c_str());
+    Serial.print(OK);
   } else {
-    Serial.print("Join AP failure\r\n");
+    //Serial.print("Join AP failure\r\n");
+    Serial.println("1");
   }
   wifi.disableMUX();
-  Serial.print("WIFI setup end\r\n");
+  //Serial.print("WIFI setup end\r\n");
 
 }
 
 void postSensorData(String temp1, String temp2, String tempAvg,
                     String tempInternal, String heaterOn, String compressorOn) {
   //Serial.println("Debug 1");
-  uint8_t buffer[1024] = {0};
+  //uint8_t buffer[512] = {0};
   //Serial.println("Debug 2");
   //delay(500);
   
   if (wifi.createTCP(HOST_NAME, HOST_PORT)) {
-    Serial.print("create tcp ok\r\n");
+    //Serial.print("create tcp ok\r\n");
+    Serial.println(OK);
   } else {
-    Serial.print("create tcp err\r\n");
+    Serial.println("2");
     return;
   }
 
@@ -93,9 +106,10 @@ void postSensorData(String temp1, String temp2, String tempAvg,
   http += "Host: api.thingspeak.com\r\n";
   http += "Connection: close\r\n\r\n";
 
-  Serial.println(http);
+  //Serial.println(http);
   wifi.send((const uint8_t*)http.c_str(), http.length());
 
+/*
   uint32_t len = wifi.recv(buffer, sizeof(buffer), 10000);
   if (len > 0) {
     Serial.print("Received:[");
@@ -103,12 +117,12 @@ void postSensorData(String temp1, String temp2, String tempAvg,
       Serial.print((char)buffer[i]);
     }
     Serial.print("]\r\n");
-  }
+  }*/
 
   if (wifi.releaseTCP()) {
-    Serial.print("release tcp ok\r\n");
+    //Serial.print("release tcp ok\r\n");
   } else {
-    Serial.print("release tcp err\r\n");
+    //Serial.print("release tcp err\r\n");
   }
 }
 
