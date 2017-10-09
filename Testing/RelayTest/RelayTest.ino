@@ -52,24 +52,24 @@ void loop() {
 void setupRelay() {
   pinMode(heaterPin, OUTPUT);
   pinMode(compressorPin, OUTPUT);
-  digitalWrite(heaterPin, LOW);
-  digitalWrite(compressorPin, LOW);
+  digitalWrite(heaterPin, HIGH); //high is off
+  digitalWrite(compressorPin, HIGH); //high is off
 }
 
 void turnHeaterOn() {
-  digitalWrite(heaterPin, HIGH);
+  digitalWrite(heaterPin, LOW); //high is off
   heaterState = true;
 }
 void turnHeaterOff() {
-  digitalWrite(heaterPin, LOW);
+  digitalWrite(heaterPin, HIGH); //high is off
   heaterState = false;
 }
 void turnCompressorOn() {
-  digitalWrite(compressorPin, HIGH);
+  digitalWrite(compressorPin, LOW); //high is off
   compressorState = true;
 }
 void turnCompressorOff() {
-  digitalWrite(compressorPin, LOW);
+  digitalWrite(compressorPin, HIGH); //high is off
   compressorState = false;
 }
 
