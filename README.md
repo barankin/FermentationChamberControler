@@ -2,7 +2,7 @@
 arduino based fermentation chamber temperature controller
 
 * Stage one including:
- * Arduino ~~Uno clone~~ Nano clone
+ * Arduino ~~Uno clone~~ Nano
  * 1602 LCD display
  * Rotary encoder for changing temperature
  * Two temperature probes DS18B20 using one wire bus
